@@ -35,51 +35,85 @@ app.layout = html.Div([
     ########## title #########
     html.H1('% of bee colonies affected', style = {'text-align': 'center'}),
 
-    ########## dropdown menu #########
-    dcc.Dropdown(id="slct_disease",
-                 options=[
-                     {"label": disease, "value": disease}
-                      for disease in set(df['Affected by'])],
-                 multi=False,
-                 value='Varroa_mites',
-                 style={'width': "40%"}
-                 ),
+    ########## disease selection drowdown menu #########
+    html.Div([
+        dcc.Dropdown(id="slct_disease",
+                    options=[
+                        {"label": disease, "value": disease}
+                        for disease in set(df['Affected by'])],
+                    multi=False,
+                    value='Varroa_mites'
+                    ),
 
-    ########## output to display ??? #########
-    html.Div(id='output_container', children=[]),
+        ########## Display selected disease #########
+        html.Div(id='disease_container', children=[])], 
+        style={'width': '48%', 'display': 'inline-block'}),
+
     html.Br(),
 
     ########## graph #########
-    dcc.Graph(id='line_chart', figure={})
+    dcc.Graph(id='line_chart', figure={}),
+
+    ########## state selection ##################
+    html.Br(),
+
+    html.Div([
+  
+    dcc.Dropdown(id="slct_state",
+                options=[
+                    {"label": state, "value": state}
+                    for state in set(df['State'])],
+                multi=True,
+                value=['Texas', 'New Mexico', 'New York'],
+                style={'width': "90%",'float': 'left'}
+                )],
+
+    style={'width': '48%', 'display': 'inline-block'})
+
 ])
 
 #callback
 
 @app.callback(
-    [Output(component_id='output_container', component_property='children'),
+    [Output(component_id='disease_container', component_property='children'),
      Output(component_id='line_chart', component_property='figure')],
-    [Input(component_id='slct_disease', component_property='value')]
+    [Input(component_id='slct_disease', component_property='value'),
+    Input(component_id='slct_state', component_property='value') ]
 )
 
-def update_graph(option_selected):
+def update_graph(disease_selected, state_selected):
 
-    container = "User chose Affected by: {}".format(option_selected)
+    disease_container = "User chose Affected by: {}".format(disease_selected)
 
     dff = df.copy()
-    myStates = ['Texas', 'New Mexico', 'New York']
-    dff = dff.loc[dff['State'].isin(myStates)]
-    dff=dff[dff['Affected by'] == option_selected]
+    if type(state_selected) is list:
+        dff = dff.loc[dff['State'].isin(state_selected)]
+    else:
+        dff = dff.loc[dff['State'] == state_selected]
 
-    fig = px.line(
+    dff=dff[dff['Affected by'] == disease_selected]
+
+    if type(state_selected) is list:
+        fig = px.line(
         data_frame = dff,
         x = 'Year',
         y = 'Pct of Colonies Impacted',
         color = 'State',
-        title = '% of bee colonies affected by Varroa_mites',
+        title = '% of bee colonies affected by {}'.format(disease_selected),
+        template='plotly_dark'
+    )
+    else:
+        fig = px.line(
+        data_frame = dff,
+        x = 'Year',
+        y = 'Pct of Colonies Impacted',
+        title = '% of bee colonies affected by {}'.format(disease_selected),
         template='plotly_dark'
     )
 
-    return container, fig
+
+
+    return disease_container , fig
 
 
 #------------------------------------------------------------------------
